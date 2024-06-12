@@ -161,6 +161,7 @@ export class BoardComponent implements OnInit {
           this.shiftPressed && this.arrowUpPressed
             ? newShape
             : newShape.reverse();
+        this.shapeService.setShape(shape);
         this.boardService.drawShape(shape);
         break;
       }

@@ -46,6 +46,10 @@ export class ShapeService {
     return this.shape;
   }
 
+  setShape(shape: number[][]): void {
+    this.shape = shape;
+  }
+
   changeShape(): void {
     const keys = Object.keys(this.shapes);
     const min = Math.ceil(0);
