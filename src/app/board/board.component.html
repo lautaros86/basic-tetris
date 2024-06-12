@@ -1,6 +1,4 @@
-<div class="board"
-(keydown)="move($event)"
->
+<div class="board">
   <div *ngFor="let row of board; let  y = index">
     <div class="row">
       <div *ngFor="let cell of row; let  x = index">
@@ -15,7 +13,6 @@
     </div>
   </div>
 </div>
-
 <button (click)="start()" class="button">start</button>
 <button (click)="drawShape()" class="button">drawShape</button>
 <button (click)="updatePosition(this.position.y, this.position.x)" class="button">updatePosition</button>
