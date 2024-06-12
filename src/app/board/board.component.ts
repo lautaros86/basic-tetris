@@ -1,6 +1,7 @@
 import { Component, HostListener, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { delay } from 'rxjs';
+import { ShapeService } from '../services/shape.service';
+import { BoardService } from '../services/board.service';
 
 @Component({
   selector: 'app-board',
@@ -12,89 +13,67 @@ import { delay } from 'rxjs';
 export class BoardComponent implements OnInit {
   @Input() width: number = 0;
   @Input() height: number = 0;
-  board: number[][] = Array<number[]>();
-  public gameSpeed: number = 1;
-  errorLog = '';
-  position: { x: number; y: number } = { x: 5, y: 0 };
-  shapes: { [key: string]: number[][] } = {
-    square: [
-      [1, 1],
-      [1, 1],
-    ],
-    stick: [[1, 1, 1, 1]],
-    zet: [
-      [0, 1],
-      [1, 1],
-      [1, 0],
-    ],
-    leftZet: [
-      [1, 0],
-      [1, 1],
-      [0, 1],
-    ],
-    tee: [
-      [1, 0],
-      [1, 1],
-      [1, 0],
-    ],
-    l: [
-      [1, 0],
-      [1, 0],
-      [1, 1],
-    ],
-    leftL: [
-      [0, 1],
-      [0, 1],
-      [1, 1],
-    ],
-  };
-  nextShape: number[][] = [];
-  shape: number[][] = [];
+
   gameLoop: any;
+  freeze: boolean = false;
+
   shiftPressed = false;
   arrowUpPressed = false;
+
+  board: number[][] = [];
+
+  constructor(
+    private shapeService: ShapeService,
+    private boardService: BoardService
+  ) {}
+
   ngOnInit() {}
 
   start() {
-    this.board = Array.from({ length: this.height }, () =>
-      Array.from({ length: this.width }, () => 0)
-    );
-    this.position = { x: 5, y: 0 };
-    this.changeShape();
-    this.changeShape();
-    this.drawShape();
+    this.boardService.initBoard(this.height, this.width);
+    this.board = this.boardService.getBoard();
+    this.shapeService.changeShape();
+    this.shapeService.changeShape();
+    this.boardService.drawShape(this.shapeService.getShape());
+    this.freeze = false;
     if (this.gameLoop === undefined) this.loop();
   }
-
+  pause() {
+    this.freeze = !this.freeze;
+  }
   loop() {
     this.gameLoop = setInterval(() => {
-      this.clearShape();
-      this.goDown();
-      this.drawShape();
+      if (!this.freeze) {
+        this.boardService.clearShape(this.shapeService.getShape());
+        this.goDown();
+        this.boardService.drawShape(this.shapeService.getShape());
+      }
     }, 1000);
   }
 
   goDown() {
-    if (this.checkColision(this.position.y + 1, this.position.x)) {
+    const position = this.boardService.getPosition();
+    if (this.checkColision(position.y + 1, position.x)) {
       this.checkGameOver();
       this.mergeShapeIntoBoard();
       this.cleanRow();
-      this.position.y = 0;
-      this.changeShape();
+      position.y = 0;
+      this.shapeService.changeShape();
     } else {
-      this.updatePosition(this.position.y + 1, this.position.x);
+      this.updatePosition(position.y + 1, position.x);
     }
   }
 
   checkColision(newY: number, newX: number) {
     let hasColision = false;
-
-    for (let y = 0; y < this.shape.length; y++) {
-      if (this.board[newY + y] === undefined) {
+    const board = this.boardService.getBoard();
+    const shape: number[][] = this.shapeService.getShape();
+    for (let y = 0; y < shape.length; y++) {
+      if (board[newY + y] === undefined) {
         hasColision = true;
       } else {
-        for (let x = 0; x < this.shape[y].length; x++) {
-          if (this.board[newY + y][newX + x] !== 0) {
+        for (let x = 0; x < shape[y].length; x++) {
+          if (board[newY + y][newX + x] !== 0) {
             hasColision = true;
           }
         }
@@ -105,45 +84,32 @@ export class BoardComponent implements OnInit {
   }
 
   checkGameOver(): boolean {
-    this.drawShape();
-    const end = this.board[0].some((cell) => cell === 1);
+    const shape = this.shapeService.getShape();
+    const board = this.boardService.getBoard();
+    this.boardService.drawShape(shape);
+    const end = board[0].some((cell) => cell === 1);
     if (end) this.stopGame();
-    this.clearShape();
+    this.boardService.clearShape(shape);
     return end;
   }
 
-  getRandomInt(min: number, max: number): number {
-    min = Math.ceil(min);
-    max = Math.floor(max);
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  }
-
-  changeShape(): void {
-    const keys = Object.keys(this.shapes);
-    this.shape = this.nextShape;
-    const random = this.getRandomInt(0, keys.length - 1);
-    const key = keys[random];
-    if (this.shapes[key] === undefined) {
-      console.log('La seleccion de shape es undefined');
-    }
-    this.nextShape = this.shapes[key];
-  }
-
   updatePosition(newY: number, newX: number) {
+    const position = this.boardService.getPosition();
     if (this.checkColision(newY, newX)) {
       console.log('Colision con algo al decender.');
       console.log('Se procede a unificar tabledo y figura.');
       this.mergeShapeIntoBoard();
-      this.position.y = 0;
-      this.changeShape();
+      position.y = 0;
+      this.shapeService.changeShape();
     } else {
-      this.position.y = newY;
-      this.position.x = newX;
+      position.y = newY;
+      position.x = newX;
     }
   }
 
   mergeShapeIntoBoard() {
-    this.drawShape();
+    const shape = this.shapeService.getShape();
+    this.boardService.drawShape(shape);
   }
 
   stopGame() {
@@ -183,37 +149,39 @@ export class BoardComponent implements OnInit {
     event.preventDefault();
 
     console.log('entro flechita: ' + event.key);
+    let shape = this.shapeService.getShape();
+    const position = this.boardService.getPosition();
     switch (event.key) {
       case 'ArrowUp': {
-        this.clearShape();
-        const newShape = this.shape[0].map((val, index) =>
-          this.shape.map((row) => row[index])
+        this.boardService.clearShape(shape);
+        const newShape = shape[0].map((val, index) =>
+          shape.map((row) => row[index])
         );
-        this.shape =
+        shape =
           this.shiftPressed && this.arrowUpPressed
             ? newShape
             : newShape.reverse();
-        this.drawShape();
+        this.boardService.drawShape(shape);
         break;
       }
       case 'ArrowRight': {
-        this.clearShape();
-        if (!this.checkColision(this.position.y, this.position.x + 1))
-          this.updatePosition(this.position.y, this.position.x + 1);
-        this.drawShape();
+        this.boardService.clearShape(shape);
+        if (!this.checkColision(position.y, position.x + 1))
+          this.updatePosition(position.y, position.x + 1);
+        this.boardService.drawShape(shape);
         break;
       }
       case 'ArrowLeft': {
-        this.clearShape();
-        if (!this.checkColision(this.position.y, this.position.x - 1))
-          this.updatePosition(this.position.y, this.position.x - 1);
-        this.drawShape();
+        this.boardService.clearShape(shape);
+        if (!this.checkColision(position.y, position.x - 1))
+          this.updatePosition(position.y, position.x - 1);
+        this.boardService.drawShape(shape);
         break;
       }
       case 'ArrowDown': {
-        this.clearShape();
-        this.updatePosition(this.position.y + 1, this.position.x);
-        this.drawShape();
+        this.boardService.clearShape(shape);
+        this.updatePosition(position.y + 1, position.x);
+        this.boardService.drawShape(shape);
         break;
       }
       default: {
@@ -225,42 +193,15 @@ export class BoardComponent implements OnInit {
 
   cleanRow() {
     let rowsCleaned = 0;
-    for (let i = this.board.length - 1; i > 0; i--) {
-      if (this.board[i].every((cell) => cell === 1)) {
-        this.board.splice(i, 1);
+    const board = this.boardService.getBoard();
+    for (let i = board.length - 1; i > 0; i--) {
+      if (board[i].every((cell) => cell === 1)) {
+        board.splice(i, 1);
         rowsCleaned++;
       }
     }
     for (let i = 0; i < rowsCleaned; i++) {
-      this.board.unshift(Array.from({ length: this.width }, () => 0));
-    }
-  }
-
-  drawShape() {
-    if (this.shape === undefined) {
-      console.log('Intenta dibujar un shape undefined');
-    }
-    for (let y = 0; y < this.shape.length; y++) {
-      if (this.shape[y] === undefined) {
-        console.log('Intenta dibujar un shape undefined dentro del for');
-      }
-      for (let x = 0; x < this.shape[y].length; x++) {
-        this.board[this.position.y + y][this.position.x + x] = this.shape[y][x];
-      }
-    }
-  }
-
-  clearShape() {
-    if (this.shape === undefined) {
-      console.log('intenta borrar un shape undefined');
-    }
-    for (let y = 0; y < this.shape.length; y++) {
-      for (let x = 0; x < this.shape[y].length; x++) {
-        if (this.shape[y] === undefined) {
-          console.log('Intenta borrar un shape undefined dentro del for');
-        }
-        this.board[this.position.y + y][this.position.x + x] = 0;
-      }
+      board.unshift(Array.from({ length: this.width }, () => 0));
     }
   }
 }
