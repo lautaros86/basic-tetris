@@ -1,0 +1,31 @@
+.board {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+}
+
+.cell {
+  width: 20px;  /* Ajusta el tamaño según sea necesario */
+  height: 20px; /* Ajusta el tamaño según sea necesario */
+  border: 1px solid #ccc;
+  cursor: pointer;
+}
+
+.blackSquare {
+  height: 15px;
+  width: 15px;
+  background: black;
+}
+.yellowSquare {
+  height: 15px;
+  width: 15px;
+  background: yellow;
+}
+.redSquare {
+  height: 15px;
+  width: 15px;
+  background: red;
+}
