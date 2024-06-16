@@ -10,7 +10,7 @@ import { BoardService } from '../services/board.service';
   templateUrl: './board.component.html',
   styleUrl: './board.component.css',
 })
-export class BoardComponent implements OnInit {
+export class BoardComponent {
   @Input() width: number = 0;
   @Input() height: number = 0;
 
@@ -21,32 +21,34 @@ export class BoardComponent implements OnInit {
   arrowUpPressed = false;
 
   board: number[][] = [];
-
+  gameOver: boolean = false;
   constructor(
     private shapeService: ShapeService,
     private boardService: BoardService
   ) {}
 
-  ngOnInit() {}
-
   start() {
+    this.gameOver = false;
     this.boardService.initBoard(this.height, this.width);
     this.board = this.boardService.getBoard();
     this.shapeService.changeShape();
     this.shapeService.changeShape();
-    this.boardService.drawShape(this.shapeService.getShape());
+    this.boardService.drawShape();
     this.freeze = false;
     if (this.gameLoop === undefined) this.loop();
   }
+
   pause() {
     this.freeze = !this.freeze;
   }
+
   loop() {
     this.gameLoop = setInterval(() => {
       if (!this.freeze) {
-        this.boardService.clearShape(this.shapeService.getShape());
+        this.boardService.clearShape();
         this.goDown();
-        this.boardService.drawShape(this.shapeService.getShape());
+        this.boardService.drawShape();
+        this.board = this.boardService.getBoard();
       }
     }, 1000);
   }
@@ -55,66 +57,72 @@ export class BoardComponent implements OnInit {
     const position = this.boardService.getPosition();
     if (this.checkColision(position.y + 1, position.x)) {
       this.checkGameOver();
-      this.mergeShapeIntoBoard();
-      this.cleanRow();
+      this.boardService.mergeShapeIntoBoard();
+      this.boardService.cleanRow();
       position.y = 0;
+      position.x = 5;
       this.shapeService.changeShape();
     } else {
-      this.updatePosition(position.y + 1, position.x);
+      this.boardService.setPosition(position.y + 1, position.x);
     }
   }
 
-  checkColision(newY: number, newX: number) {
+  checkColision(
+    newY: number,
+    newX: number,
+    shape: number[][] = this.shapeService.getShape()
+  ) {
     let hasColision = false;
     const board = this.boardService.getBoard();
-    const shape: number[][] = this.shapeService.getShape();
-    for (let y = 0; y < shape.length; y++) {
+    shape.forEach((row, y) => {
       if (board[newY + y] === undefined) {
         hasColision = true;
       } else {
-        for (let x = 0; x < shape[y].length; x++) {
-          if (board[newY + y][newX + x] !== 0) {
+        row.forEach((value, x) => {
+          if (board[newY + y][newX + x] !== 0 && shape[y][x] === 1) {
+            hasColision = true;
+          }
+        });
+      }
+    });
+
+    return hasColision;
+  }
+
+  // returns true if detect a colition
+  checkShapeRotation(shape: number[][]): boolean {
+    let hasColision = false;
+    const board = this.boardService.getBoard();
+    const position = this.boardService.getPosition();
+    for (let y = position.y; y < shape.length; y++) {
+      if (board[y] === undefined) {
+        hasColision = true;
+      } else {
+        for (let x = position.x; x < shape[y].length; x++) {
+          if (board[y][x] !== 0) {
             hasColision = true;
           }
         }
       }
     }
-
     return hasColision;
   }
 
   checkGameOver(): boolean {
-    const shape = this.shapeService.getShape();
     const board = this.boardService.getBoard();
-    this.boardService.drawShape(shape);
+    this.boardService.drawShape();
     const end = board[0].some((cell) => cell === 1);
     if (end) this.stopGame();
-    this.boardService.clearShape(shape);
+    this.boardService.clearShape();
     return end;
   }
 
-  updatePosition(newY: number, newX: number) {
-    const position = this.boardService.getPosition();
-    if (this.checkColision(newY, newX)) {
-      console.log('Colision con algo al decender.');
-      console.log('Se procede a unificar tabledo y figura.');
-      this.mergeShapeIntoBoard();
-      position.y = 0;
-      this.shapeService.changeShape();
-    } else {
-      position.y = newY;
-      position.x = newX;
-    }
-  }
-
-  mergeShapeIntoBoard() {
-    const shape = this.shapeService.getShape();
-    this.boardService.drawShape(shape);
-  }
-
   stopGame() {
+    this.boardService.setBoard([]);
+    this.gameOver = true;
     clearInterval(this.gameLoop);
   }
+
   @HostListener('window:keydown', ['$event'])
   handleKeyDown(event: KeyboardEvent) {
     if (event.key === 'Shift') {
@@ -122,14 +130,6 @@ export class BoardComponent implements OnInit {
     }
     if (event.key === 'ArrowUp') {
       this.arrowUpPressed = true;
-    }
-    this.checkCombination();
-  }
-
-  checkCombination() {
-    if (this.shiftPressed && this.arrowUpPressed) {
-      console.log('Shift + ArrowUp combination pressed');
-      // Realiza cualquier acción que desees aquí
     }
   }
 
@@ -147,62 +147,49 @@ export class BoardComponent implements OnInit {
   move(event: KeyboardEvent) {
     event.stopPropagation();
     event.preventDefault();
-
-    console.log('entro flechita: ' + event.key);
     let shape = this.shapeService.getShape();
     const position = this.boardService.getPosition();
     switch (event.key) {
       case 'ArrowUp': {
-        this.boardService.clearShape(shape);
-        const newShape = shape[0].map((val, index) =>
+        const rotatedShape = shape[0].map((_, index) =>
           shape.map((row) => row[index])
         );
-        shape =
-          this.shiftPressed && this.arrowUpPressed
-            ? newShape
-            : newShape.reverse();
-        this.shapeService.setShape(shape);
-        this.boardService.drawShape(shape);
+        this.boardService.clearShape();
+        if (!this.checkColision(position.y, position.x, rotatedShape)) {
+          shape =
+            this.shiftPressed && this.arrowUpPressed
+              ? rotatedShape
+              : rotatedShape.reverse();
+          this.shapeService.setShape(shape);
+          this.boardService.drawShape();
+        }
         break;
       }
       case 'ArrowRight': {
-        this.boardService.clearShape(shape);
+        this.boardService.clearShape();
         if (!this.checkColision(position.y, position.x + 1))
-          this.updatePosition(position.y, position.x + 1);
-        this.boardService.drawShape(shape);
+          this.boardService.setPosition(position.y, position.x + 1);
+        this.boardService.drawShape();
         break;
       }
       case 'ArrowLeft': {
-        this.boardService.clearShape(shape);
+        this.boardService.clearShape();
         if (!this.checkColision(position.y, position.x - 1))
-          this.updatePosition(position.y, position.x - 1);
-        this.boardService.drawShape(shape);
+          this.boardService.setPosition(position.y, position.x - 1);
+        this.boardService.drawShape();
         break;
       }
       case 'ArrowDown': {
-        this.boardService.clearShape(shape);
-        this.updatePosition(position.y + 1, position.x);
-        this.boardService.drawShape(shape);
+        this.boardService.clearShape();
+        if (!this.checkColision(position.y + 1, position.x))
+          this.boardService.setPosition(position.y + 1, position.x);
+        this.boardService.drawShape();
         break;
       }
       default: {
         //statements;
         break;
       }
-    }
-  }
-
-  cleanRow() {
-    let rowsCleaned = 0;
-    const board = this.boardService.getBoard();
-    for (let i = board.length - 1; i > 0; i--) {
-      if (board[i].every((cell) => cell === 1)) {
-        board.splice(i, 1);
-        rowsCleaned++;
-      }
-    }
-    for (let i = 0; i < rowsCleaned; i++) {
-      board.unshift(Array.from({ length: this.width }, () => 0));
     }
   }
 }
