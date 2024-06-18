@@ -1,21 +1,52 @@
-<div *ngIf="!gameOver" class="board">
-  <div *ngFor="let row of board; let  y = index">
-    <div class="row">
-      <div *ngFor="let cell of row; let  x = index">
-        <div class="cell"
-        [ngClass]="{
-          'blackSquare': cell === 0,
-          'yellowSquare': cell === 1,
-          'redSquare': cell === 2,
-          }">
+<div *ngIf="!gameOver" class="container">
+  <div class="item section">
+    <div class="item board">
+      <div *ngFor="let row of board;">
+        <div class="row">
+          <div *ngFor="let cell of row;">
+            <div class="cell" [ngClass]="{
+              'blackSquare': cell === 0,
+              'yellowSquare': cell === 1,
+              'redSquare': cell === 2,
+              }">
+            </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="item preBoard">
+      <div class="preview">
+        <div *ngFor="let row of preBoard; let  y = index">
+          <div class="row">
+            <div *ngFor="let cell of row; let  x = index">
+              <div class="cell" [ngClass]="{
+              'blackSquare': cell === 0,
+              'yellowSquare': cell === 1,
+              'redSquare': cell === 2,
+              }">
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
+
+
+  <div *ngIf="gameOver">
+    Game Over
+  </div>
+  <div class="item section">
+    <div class="item detail">
+      <p>Lineas eliminadas: {{lineasEliminadas}}</p>
+      <p>Velocidad: {{speed}}</p>
+    </div>
+    <div class="item actions">
+      <button (click)="start()" class="button">start</button>
+      <button (click)="pause()" class="button">Pause</button>
+      <button (click)="stopGame()" class="button">stopGame</button>
+    </div>
+  </div>
 </div>
-<div *ngIf="gameOver">
-  Game Over
-</div>
-<button (click)="start()" class="button">start</button>
-<button (click)="pause()" class="button">Pause</button>
-<button (click)="stopGame()" class="button">stopGame</button>
+

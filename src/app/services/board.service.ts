@@ -5,32 +5,31 @@ import { ShapeService } from './shape.service';
   providedIn: 'root',
 })
 export class BoardService {
-  boardTest = [
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-  ];
   board: number[][] = Array<number[]>();
-
+  preBoard: number[][] = Array<number[]>();
+  rowsDeleted: number = 0;
   position: { x: number; y: number } = { x: 5, y: 0 };
+  speedIcreaseCounter = 0;
+
+  speedIncreaseTimes = 0;
 
   constructor(private shapeService: ShapeService) {}
 
   initBoard(height: number, width: number) {
-    // this.board = Array.from({ length: height }, () => Array.from({ length: width }, () => 0));
-    this.board = this.boardTest;
+    this.board = Array.from({ length: height }, () =>
+      Array.from({ length: width }, () => 0)
+    );
+    this.preBoard = Array.from({ length: 5 }, () =>
+      Array.from({ length: 5 }, () => 0)
+    );
     this.position = { x: 5, y: 0 };
   }
 
   getBoard() {
     return [...this.board];
+  }
+  getPreBoard() {
+    return [...this.preBoard];
   }
   setBoard(board: number[][]) {
     this.board = board;
@@ -80,8 +79,15 @@ export class BoardService {
       .reverse()
       .forEach((rowToDelete) => this.board.splice(rowToDelete, 1));
     for (let i = 0; i < rowsToDetele.length; i++) {
-      this.board.unshift(Array.from({ length: board.length }, () => 0));
+      this.board.unshift(Array.from({ length: board[0].length }, () => 0));
     }
+    const speedDelta = 2;
+    let counter = rowsToDetele.length;
+    while (this.speedIcreaseCounter + counter >= speedDelta) {
+      this.speedIncreaseTimes++;
+      counter = counter - speedDelta;
+    }
+    this.rowsDeleted = this.rowsDeleted + rowsToDetele.length;
   }
 
   mergeShapeIntoBoard() {

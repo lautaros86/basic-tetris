@@ -19,8 +19,12 @@ export class BoardComponent {
 
   shiftPressed = false;
   arrowUpPressed = false;
+  lineasEliminadas: number = 0;
+  speed = 1000;
 
   board: number[][] = [];
+  preBoard: number[][] = [];
+
   gameOver: boolean = false;
   constructor(
     private shapeService: ShapeService,
@@ -31,6 +35,7 @@ export class BoardComponent {
     this.gameOver = false;
     this.boardService.initBoard(this.height, this.width);
     this.board = this.boardService.getBoard();
+    this.preBoard = this.boardService.getPreBoard();
     this.shapeService.changeShape();
     this.shapeService.changeShape();
     this.boardService.drawShape();
@@ -47,10 +52,24 @@ export class BoardComponent {
       if (!this.freeze) {
         this.boardService.clearShape();
         this.goDown();
+        this.lineasEliminadas = this.boardService.rowsDeleted;
+        this.incressSpeed();
         this.boardService.drawShape();
         this.board = this.boardService.getBoard();
       }
-    }, 1000);
+    }, this.speed);
+  }
+
+  incressSpeed() {
+    if (this.boardService.speedIncreaseTimes > 0) {
+      clearInterval(this.gameLoop);
+      const incressSpeedFlag = this.boardService.speedIncreaseTimes;
+      for (let i = 0; i < incressSpeedFlag; i++) {
+        this.speed = this.speed - this.speed * 0.25;
+      }
+      this.boardService.speedIncreaseTimes = 0;
+      this.loop();
+    }
   }
 
   goDown() {

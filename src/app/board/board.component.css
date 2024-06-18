@@ -1,6 +1,19 @@
-.board {
+.container {
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.section {
+
+  display: flex;
+  flex-direction: row;
+}
+
+.item {
+  flex: 1; /* Asegura que los elementos ocupen el mismo espacio */
+  margin: 10px; /* Añadir margen alrededor de cada item */
 }
 
 .row {
@@ -28,4 +41,7 @@
   height: 15px;
   width: 15px;
   background: red;
+}
+.button {
+  margin: 10px; /* Añadir margen superior a los botones */
 }

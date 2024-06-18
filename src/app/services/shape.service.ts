@@ -59,7 +59,7 @@ export class ShapeService {
     if (this.shapes[key] === undefined) {
       console.log('La seleccion de shape es undefined');
     }
-    this.shape = this.shapes['stick']; //this.nextShape;
+    this.shape = this.nextShape;
     this.nextShape = this.shapes[key];
   }
 }
